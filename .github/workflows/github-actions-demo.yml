@@ -1,16 +1,18 @@
 
-name: GitHub Actions Demo Test
+name: ISO8583 TCP QA Automation
 
 on:
   workflow_dispatch:
 
 jobs:
-  demo-test:
-    name: Execute Java JUnit Tests
+  iso8583-tcp-test:
+    name: Execute JposTcpTest
     runs-on: ubuntu-latest
 
     permissions:
       contents: read
+
+    timeout-minutes: 15
 
     steps:
       - name: Checkout repository
@@ -23,13 +25,24 @@ jobs:
           java-version: '25'
           cache: maven
 
-      - name: Execute JUnit tests
-        run: mvn -B clean test
+      - name: Compile Java test cases
+        run: mvn -B test-compile
 
-      - name: Upload JUnit reports
+      - name: Execute JposTcpTest
+        env:
+          TCP_HOST: ${{ vars.TCP_HOST }}
+          TCP_PORT: '8583'
+        run: |
+          if [ -z "$TCP_HOST" ]; then
+            echo "::error::TCP_HOST repository variable is not configured."
+            exit 1
+          fi
+          mvn -B "-Dtest=JposTcpTest" test
+
+      - name: Upload JUnit test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: junit-test-results
+          name: jpos-tcp-test-results
           path: target/surefire-reports/
           if-no-files-found: warn
