@@ -1,0 +1,23 @@
+
+# Maven build output
+target/
+
+# Java compiled files
+*.class
+
+# Kiro / IDE settings
+.idea/
+.vscode/
+*.iml
+
+# Local environment configuration
+.env
+.env.*
+*.local
+
+# Logs
+*.log
+
+# OS-generated files
+.DS_Store
+Thumbs.db
