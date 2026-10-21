@@ -4,37 +4,25 @@ name: ISO8583 QA Automation
 on:
   workflow_dispatch:
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   iso8583-tests:
-    name: Run Java jPOS Tests
+    name: Verify GitHub AWS OIDC
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: read
-
-    timeout-minutes: 15
+    timeout-minutes: 10
 
     steps:
       - name: Checkout QA repository
         uses: actions/checkout@v4
 
-      - name: Set up Java 25
-        uses: actions/setup-java@v4
+      - name: Configure AWS credentials using OIDC
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          distribution: temurin
-          java-version: '25'
-          cache: maven
+          role-to-assume: arn:aws:iam::723695983909:role/GitHub-ISO8583-QA-Role
+          aws-region: us-east-1
 
-      - name: Execute ISO8583 tests
-        env:
-          TCP_HOST: ${{ vars.TCP_HOST }}
-          TCP_PORT: '8583'
-        run: mvn -B "-Dtest=JposTcpTest,JposParameterizedTest" test
-
-      - name: Upload JUnit test reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: iso8583-test-results
-          path: target/surefire-reports/
-          if-no-files-found: warn
+      - name: Verify AWS authentication
+        run: aws sts get-caller-identity
