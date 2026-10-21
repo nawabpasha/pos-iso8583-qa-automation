@@ -15,13 +15,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class JposParameterizedTest {
 
-    private static final String HOST =
-        System.getenv("TCP_HOST");
+    private static final String HOST = System.getenv("TCP_HOST");
 
-private static final int PORT =
-        Integer.parseInt(
-                System.getenv().getOrDefault("TCP_PORT", "8583")
-        );
+    private static final int PORT = Integer.parseInt(
+        System.getenv().getOrDefault("TCP_PORT", "8583")
+    );
 
     @ParameterizedTest(name = "ISO8583 amount={0}, STAN={1}")
     @CsvSource({
@@ -47,15 +45,22 @@ private static final int PORT =
         request.set(48, "SKU9001");
         request.set(49, "124");
 
-        byte[] requestData = request.pack();
+        System.out.println("\n==================================");
+        System.out.println("ISO8583 TEST CASE");
+        System.out.println("Amount: " + amount);
+        System.out.println("STAN: " + stan);
+        System.out.println("==================================");
 
-        System.out.println("\nTesting amount=" + amount
-                + ", STAN=" + stan);
+        System.out.println("\n----- ISO8583 REQUEST -----");
+        printMessage(request);
+
+        byte[] requestData = request.pack();
 
         try (Socket socket = new Socket()) {
 
             socket.connect(
-                new InetSocketAddress(HOST, PORT), 10000);
+                new InetSocketAddress(HOST, PORT), 10000
+            );
             socket.setSoTimeout(90000);
 
             DataOutputStream output =
@@ -64,12 +69,11 @@ private static final int PORT =
             DataInputStream input =
                 new DataInputStream(socket.getInputStream());
 
-            // Send 2-byte length followed by ISO8583 bytes
             output.writeShort(requestData.length);
             output.write(requestData);
             output.flush();
 
-            System.out.println("Request sent: "
+            System.out.println("\nRequest sent: "
                     + requestData.length + " bytes");
 
             int responseLength = input.readUnsignedShort();
@@ -81,18 +85,46 @@ private static final int PORT =
             response.setPackager(new ISO87APackager());
             response.unpack(responseData);
 
-            // Validate the ISO8583 response
-            assertEquals("0210", response.getMTI());
-            assertEquals("189090", response.getString(3));
-            assertEquals(amount, response.getString(4));
-            assertEquals(stan, response.getString(11));
-            assertEquals("00", response.getString(39));
+            System.out.println("\n----- ISO8583 RESPONSE -----");
+            printMessage(response);
 
-            System.out.println("PASSED: amount=" + amount
-                    + ", STAN=" + stan
-                    + ", response code="
-                    + response.getString(39));
+            assertEquals("0210", response.getMTI(), "Invalid MTI");
+            assertEquals("189090", response.getString(3),
+                    "Processing code mismatch");
+            assertEquals(amount, response.getString(4),
+                    "Amount mismatch");
+            assertEquals(stan, response.getString(11),
+                    "STAN mismatch");
+            assertEquals("00", response.getString(39),
+                    "Transaction response code mismatch");
+
+            System.out.println("\nVALIDATION: PASSED");
+            System.out.println("MTI: " + response.getMTI());
+            System.out.println("DE039: " + response.getString(39));
+            System.out.println("==================================\n");
+        }
+    }
+
+    private static void printMessage(ISOMsg message)
+            throws Exception {
+
+        System.out.println("MTI = " + message.getMTI());
+
+        for (int field = 1; field <= message.getMaxField(); field++) {
+            if (message.hasField(field)) {
+                String value = message.getString(field);
+
+                // Mask potentially sensitive card data.
+                if (field == 2 || field == 35
+                        || field == 45 || field == 52
+                        || field == 55) {
+                    value = "[MASKED]";
+                }
+
+                System.out.printf(
+                    "DE%03d = %s%n", field, value
+                );
+            }
         }
     }
 }
-
