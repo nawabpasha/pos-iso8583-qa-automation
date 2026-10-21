@@ -55,3 +55,29 @@ jobs:
 
       - name: Verify AWS authentication
         run: aws sts get-caller-identity
+        
+      - name: Trigger SSM connectivity check
+        shell: bash
+        run: |
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "i-092742ccfa413e5f3" \
+            --document-name "AWS-RunShellScript" \
+            --parameters '{"commands":["echo GitHub-to-EC2-SSM-CONNECTED","whoami"]}' \
+            --region us-east-1 \
+            --query "Command.CommandId" \
+            --output text)
+
+          echo "SSM Command ID: $COMMAND_ID"
+
+          aws ssm wait command-executed \
+            --command-id "$COMMAND_ID" \
+            --instance-id "i-092742ccfa413e5f3" \
+            --region us-east-1
+
+          aws ssm get-command-invocation \
+            --command-id "$COMMAND_ID" \
+            --instance-id "i-092742ccfa413e5f3" \
+            --region us-east-1 \
+            --query '{Status:Status,Output:StandardOutputContent,Errors:StandardErrorContent}' \
+            --output json
+
