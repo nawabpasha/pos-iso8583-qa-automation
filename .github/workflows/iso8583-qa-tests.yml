@@ -26,6 +26,13 @@ jobs:
 
       - name: Verify AWS authentication
         run: aws sts get-caller-identity
+      - name: Verify ECS task discovery
+        run: |
+          aws ecs list-tasks \
+          --cluster fargate-connectivity-cluster \
+          --family fargate-connectivity-e2e \
+          --desired-status RUNNING \
+          --region us-east-1
 
       - name: Execute ISO8583 JUnit tests on EC2
         shell: bash
