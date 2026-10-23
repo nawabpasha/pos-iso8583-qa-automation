@@ -33,7 +33,7 @@ jobs:
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "i-092742ccfa413e5f3" \
             --document-name "AWS-RunShellScript" \
-            --parameters '{"commands":["set -e","cd /home/ec2-user/pos-iso8583-qa-automation","export JAVA_HOME=/usr/lib/jvm/java-25-amazon-corretto.x86_64","export PATH=$JAVA_HOME/bin:$PATH","export MAVEN_OPTS=-Xmx192m","export TCP_HOST=172.31.13.107","export TCP_PORT=8583","runuser -u ec2-user -- mvn -B -Dtest=JposTcpTest,JposParameterizedTest -DargLine=-Xmx128m test"]}' \
+            --parameters '{"commands":["set -e","cd /home/ec2-user/pos-iso8583-qa-automation","export JAVA_HOME=/usr/lib/jvm/java-25-amazon-corretto.x86_64","export PATH=$JAVA_HOME/bin:$PATH","export MAVEN_OPTS=-Xmx192m","export TCP_HOST=172.31.3.231","export TCP_PORT=8583","runuser -u ec2-user -- mvn -B -Dtest=JposTcpTest,JposParameterizedTest -DargLine=-Xmx128m test"]}' \
             --region us-east-1 \
             --query "Command.CommandId" \
             --output text)
