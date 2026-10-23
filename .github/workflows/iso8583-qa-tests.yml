@@ -26,24 +26,24 @@ jobs:
 
       - name: Verify AWS authentication
         run: aws sts get-caller-identity
-      - name: Verify ECS task discovery
+      - name: Verify ECS task private IP discovery
         run: |
-          aws ecs list-tasks \
-          --cluster fargate-connectivity-cluster \
-          --family fargate-connectivity-e2e \
-          --desired-status RUNNING \
-          --region us-east-1
-
-      - name: Execute ISO8583 JUnit tests on EC2
-        shell: bash
-        run: |
-          COMMAND_ID=$(aws ssm send-command \
-            --instance-ids "i-092742ccfa413e5f3" \
-            --document-name "AWS-RunShellScript" \
-            --parameters '{"commands":["set -e","cd /home/ec2-user/pos-iso8583-qa-automation","export JAVA_HOME=/usr/lib/jvm/java-25-amazon-corretto.x86_64","export PATH=$JAVA_HOME/bin:$PATH","export MAVEN_OPTS=-Xmx192m","export TCP_HOST=172.31.8.121","export TCP_PORT=8583","runuser -u ec2-user -- mvn -B -Dtest=JposTcpTest,JposParameterizedTest -DargLine=-Xmx128m test"]}' \
+          TASK_ARN=$(aws ecs list-tasks \
+            --cluster fargate-connectivity-cluster \
+            --family fargate-connectivity-e2e \
+            --desired-status RUNNING \
             --region us-east-1 \
-            --query "Command.CommandId" \
+            --query 'taskArns[0]' \
             --output text)
+
+          echo "Discovered task: $TASK_ARN"
+
+          aws ecs describe-tasks \
+            --cluster fargate-connectivity-cluster \
+            --tasks "$TASK_ARN" \
+            --region us-east-1 \
+            --query 'tasks[0].attachments[0].details[?name==`privateIPv4Address`].value | [0]' \
+            --output text
 
           echo "SSM Command ID: $COMMAND_ID"
 
